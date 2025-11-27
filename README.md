@@ -3,7 +3,7 @@
 **Disciplina:** Rețele Neuronale  
 **Instituție:** Universitatea POLITEHNICA București – Facultatea de Inginerie Industrială și Robotică (FIIR)  
 **Student:** Daescu Cristian-Narcis  
-**Data:** 2025
+**Data:** 20 Nov 2025
 
 ## Introducere
 
