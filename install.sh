@@ -14,10 +14,10 @@ python3 -m venv venv
 echo “Activating venv…”
 source venv/bin/activate
 
-echo “Installing Python libraries…”
+echo “📦 Installing Python libraries…”
 pip install –upgrade pip
 pip install numpy pandas scikit-learn joblib fastapi uvicorn python-multipart jupyterlab
 
-echo “All dependencies installed successfully!”
+echo “✨ All dependencies installed successfully!”
 echo “To activate environment later, run:”
 echo “    source venv/bin/activate”
