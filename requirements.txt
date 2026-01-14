@@ -1,0 +1,12 @@
+wfdb
+numpy
+pandas
+torch
+scikit-learn
+matplotlib
+scipy
+streamlit
+fpdf
+pymongo
+certifi
+bcrypt
