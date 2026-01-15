@@ -1,4 +1,4 @@
-# ❤️ MedAI-Cardiac: Cardiovascular Risk Prediction System
+# MedAI-Cardiac: Cardiovascular Risk Prediction System
 
 **Student:** Daescu Cristian  
 **Instituție:** POLITEHNICA București – FIIR  
@@ -7,13 +7,13 @@
 
 ---
 
-## 📋 Prezentare Generală
+## Prezentare Generală
 
 **MedAI-Cardiac** este un sistem complet de Inteligență Artificială (SIA) conceput pentru a asista medicii în detectarea rapidă a riscului de **Infarct Miocardic (MI)** pe baza semnalelor EKG.
 
 Sistemul integrează un pipeline complet de date, o rețea neuronală hibridă **CNN-LSTM** și o interfață grafică modernă cu funcționalități de **Explainable AI (XAI)** și **Electronic Health Record (EHR)**.
 
-### 🚀 Funcționalități Cheie
+### Funcționalități Cheie
 - **Analiză EKG 12-Lead:** Procesează semnale complexe pentru a detecta anomalii subtile.
 - **Logică Hibridă (AI + Heuristic):** Combină Deep Learning cu reguli clinice (ST-segment analysis) pentru robustețe maximă.
 - **Generator de Date Sintetice:** Simulează patologii cardiace (ST-Elevation, T-Wave Inversion) pentru testare.
@@ -24,7 +24,7 @@ Sistemul integrează un pipeline complet de date, o rețea neuronală hibridă *
 
 ---
 
-## 🏗️ Arhitectura Sistemului
+## Arhitectura Sistemului
 
 Proiectul este structurat modular, urmând fluxul unui sistem industrial de AI:
 
@@ -37,7 +37,7 @@ Proiectul este structurat modular, urmând fluxul unui sistem industrial de AI:
 
 ---
 
-## 📂 Structura Repository-ului
+## Structura Repository-ului
 
 ```
 cardio_risk_project/
@@ -75,7 +75,7 @@ cardio_risk_project/
 
 ---
 
-## 💻 Instalare și Rulare
+## Instalare și Rulare
 
 ### 1. Clonare Repository
 ```bash
@@ -107,7 +107,7 @@ streamlit run src/app.py
 
 ---
 
-## 📊 Performanță (Etapa 6)
+## Performanță (Etapa 6)
 
 Modelul final optimizat a obținut următoarele rezultate pe setul de testare:
 
@@ -120,7 +120,7 @@ Modelul final optimizat a obținut următoarele rezultate pe setul de testare:
 
 ---
 
-## 📜 Licență și Credite
+## Licență și Credite
 
 Acest proiect a fost dezvoltat ca parte a cursului de **Rețele Neuronale** la **POLITEHNICA București**.
 Setul de date utilizat pentru antrenare include subseturi din **PTB-XL** (PhysioNet).
