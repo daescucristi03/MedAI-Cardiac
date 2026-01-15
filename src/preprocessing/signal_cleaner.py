@@ -21,6 +21,22 @@ class SignalCleaner:
             
         return cleaned_signal
 
+    def remove_powerline_interference(self, ecg_signal, freq=50.0):
+        """
+        Removes powerline interference (50Hz/60Hz) using a notch filter.
+        """
+        nyquist = 0.5 * self.sampling_rate
+        notch_freq = freq / nyquist
+        quality_factor = 30.0
+        b, a = signal.iirnotch(notch_freq, quality_factor)
+        
+        if ecg_signal.ndim == 1:
+            cleaned_signal = signal.filtfilt(b, a, ecg_signal)
+        else:
+            cleaned_signal = signal.filtfilt(b, a, ecg_signal, axis=0)
+            
+        return cleaned_signal
+
     def z_score_normalization(self, ecg_signal):
         """
         Standard Z-score normalization.
@@ -34,8 +50,11 @@ class SignalCleaner:
         # 1. Remove baseline wander
         no_wander = self.remove_baseline_wander(ecg_signal)
         
-        # 2. Normalize
+        # 2. Remove powerline interference (50Hz)
+        no_powerline = self.remove_powerline_interference(no_wander, freq=50.0)
+        
+        # 3. Normalize
         # We use Z-score which is standard for DL models
-        normalized = self.z_score_normalization(no_wander)
+        normalized = self.z_score_normalization(no_powerline)
 
         return normalized

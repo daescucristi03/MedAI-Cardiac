@@ -49,14 +49,18 @@ class CNNLSTM(nn.Module):
         
         # LSTM for temporal dependencies
         # Input features: 256 (from CNN)
+        # Reverted dropout to 0.5 for better confidence
         self.lstm = nn.LSTM(input_size=256, hidden_size=128, num_layers=2, batch_first=True, dropout=0.5, bidirectional=True)
         
+        # Attention Mechanism
+        self.attention = nn.Linear(128 * 2, 1)
+
         # Classifier
         # Bidirectional LSTM outputs 2 * hidden_size
         self.fc = nn.Sequential(
             nn.Linear(128 * 2, 64),
             nn.ReLU(),
-            nn.Dropout(0.5),
+            nn.Dropout(0.5), # Reverted dropout
             nn.Linear(64, num_classes),
             nn.Sigmoid()
         )
@@ -83,9 +87,9 @@ class CNNLSTM(nn.Module):
         self.lstm.flatten_parameters()
         out, _ = self.lstm(x)
         
-        # Global Average Pooling over time steps (better than taking just the last step)
-        # This helps capture features that might appear anywhere in the signal
-        out = torch.mean(out, dim=1)
+        # Attention Mechanism
+        attn_weights = F.softmax(self.attention(out), dim=1)
+        out = torch.sum(attn_weights * out, dim=1)
         
         # Classification
         out = self.fc(out)

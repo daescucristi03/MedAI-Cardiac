@@ -133,11 +133,8 @@ def predict_risk(model, signal, sensitivity=1.0):
     with torch.no_grad():
         ai_prob = model(input_tensor).item()
     
-    # Polarize AI prob: push towards 0 or 1
-    if ai_prob > 0.5:
-        ai_prob = min(0.92, ai_prob + 0.2) # Push to ~0.9
-    else:
-        ai_prob = max(0.08, ai_prob - 0.2) # Push to ~0.1
+    # REMOVED ARTIFICIAL POLARIZATION
+    # We use the raw probability directly to avoid jumps
     
     heuristic_risk = analyze_st_segment(cleaned_signal)
     
@@ -147,18 +144,20 @@ def predict_risk(model, signal, sensitivity=1.0):
         hr_risk = 0.15
         
     # Weighted Ensemble
-    base_risk = (ai_prob * 0.5) + (heuristic_risk * 0.4) + hr_risk
+    # AI has 60% weight, Heuristics 30%, HR 10%
+    base_risk = (ai_prob * 0.6) + (heuristic_risk * 0.3) + hr_risk
     
     # Apply sensitivity
     final_risk = base_risk * sensitivity
     
-    # Final Polarization for High Confidence
-    # If risk is high (>0.6), push it higher (to ~0.85-0.95)
-    # If risk is low (<0.4), push it lower (to ~0.05-0.15)
-    if final_risk > 0.6:
-        final_risk = min(0.95, final_risk + 0.15)
-    elif final_risk < 0.4:
-        final_risk = max(0.05, final_risk - 0.15)
+    # Soft Sigmoid-like scaling instead of hard steps
+    # This pushes values gently towards extremes without breaking continuity
+    def soft_scale(x):
+        return 1 / (1 + np.exp(-10 * (x - 0.5)))
+    
+    # Blend the linear risk with the soft scaled risk
+    # This gives confidence but maintains stability
+    final_risk = (final_risk * 0.7) + (soft_scale(final_risk) * 0.3)
     
     return max(0.01, min(0.99, final_risk))
 

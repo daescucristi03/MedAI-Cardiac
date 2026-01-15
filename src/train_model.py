@@ -14,15 +14,15 @@ from torch.utils.data import DataLoader, random_split
 import numpy as np
 import time
 
-from src.neural_network.dataset import ECGDataset
+from src.neural_network.dataset import ECGDataset, RandomNoise, RandomShift, Compose
 from src.neural_network.model import CNNLSTM
 
 def train():
     # Hyperparameters
     BATCH_SIZE = 32 # Increased for stability
-    LEARNING_RATE = 0.001
-    EPOCHS = 30
-    PATIENCE = 5 # Early stopping patience
+    LEARNING_RATE = 0.0005 # Lower learning rate for better convergence
+    EPOCHS = 50 # Increased epochs
+    PATIENCE = 8 # Increased patience
     
     # Paths
     base_dir = project_root
@@ -35,16 +35,30 @@ def train():
         return
 
     # 1. Prepare Data
-    dataset = ECGDataset(data_path, labels_path)
+    # Define data augmentation for training
+    train_transform = Compose([
+        RandomNoise(noise_level=0.05),
+        RandomShift(shift_max=50)
+    ])
+    
+    # Load dataset without transform initially
+    full_dataset = ECGDataset(data_path, labels_path)
     
     # Handle small datasets gracefully
-    if len(dataset) < 10:
+    if len(full_dataset) < 10:
         print("WARNING: Dataset is very small. Reducing batch size.")
         BATCH_SIZE = 2
         
-    train_size = int(0.8 * len(dataset))
-    val_size = len(dataset) - train_size
-    train_dataset, val_dataset = random_split(dataset, [train_size, val_size])
+    train_size = int(0.8 * len(full_dataset))
+    val_size = len(full_dataset) - train_size
+    
+    # Split indices
+    indices = list(range(len(full_dataset)))
+    train_indices, val_indices = indices[:train_size], indices[train_size:]
+    
+    # Create subsets with appropriate transforms
+    train_dataset = torch.utils.data.Subset(ECGDataset(data_path, labels_path, transform=train_transform), train_indices)
+    val_dataset = torch.utils.data.Subset(ECGDataset(data_path, labels_path, transform=None), val_indices)
     
     train_loader = DataLoader(train_dataset, batch_size=BATCH_SIZE, shuffle=True, num_workers=0)
     val_loader = DataLoader(val_dataset, batch_size=BATCH_SIZE, shuffle=False, num_workers=0)
@@ -60,11 +74,12 @@ def train():
     # 3. Loss and Optimizer
     criterion = nn.BCELoss()
     # AdamW adds weight decay for regularization
-    optimizer = optim.AdamW(model.parameters(), lr=LEARNING_RATE, weight_decay=1e-4)
+    # Reverted weight decay to 1e-3 to allow model to learn stronger features
+    optimizer = optim.AdamW(model.parameters(), lr=LEARNING_RATE, weight_decay=1e-3)
     
     # Scheduler: Reduce LR if validation loss plateaus
     # Removed verbose=True for PyTorch 2.0+ compatibility
-    scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=0.1, patience=3)
+    scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=0.5, patience=3)
     
     # 4. Training Loop with Early Stopping
     best_val_loss = float('inf')

@@ -4,6 +4,31 @@ import numpy as np
 import pickle
 import os
 
+class RandomNoise(object):
+    def __init__(self, noise_level=0.05):
+        self.noise_level = noise_level
+
+    def __call__(self, signal):
+        noise = torch.randn_like(signal) * self.noise_level
+        return signal + noise
+
+class RandomShift(object):
+    def __init__(self, shift_max=50):
+        self.shift_max = shift_max
+
+    def __call__(self, signal):
+        shift = np.random.randint(-self.shift_max, self.shift_max)
+        return torch.roll(signal, shift, dims=1)
+
+class Compose(object):
+    def __init__(self, transforms):
+        self.transforms = transforms
+
+    def __call__(self, signal):
+        for t in self.transforms:
+            signal = t(signal)
+        return signal
+
 class ECGDataset(Dataset):
     def __init__(self, data_path, labels_path, transform=None):
         """

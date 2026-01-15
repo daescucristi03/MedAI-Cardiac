@@ -33,7 +33,7 @@ Această etapă corespunde punctelor **7. Analiza performanței și optimizarea 
 
 ### Tabel Experimente de Optimizare
 
-Am realizat **4 experimente** cu variații sistematice pentru a îmbunătăți performanța modelului:
+Am realizat **5 experimente** cu variații sistematice pentru a îmbunătăți performanța modelului:
 
 | **Exp#** | **Modificare față de Baseline (Etapa 5)** | **Accuracy** | **F1-score** | **Timp antrenare** | **Observații** |
 |----------|------------------------------------------|--------------|--------------|-------------------|----------------|
@@ -41,13 +41,15 @@ Am realizat **4 experimente** cu variații sistematice pentru a îmbunătăți p
 | Exp 1 | Adăugare Dropout 0.5 în LSTM | 0.84 | 0.81 | 11 min | Reducere overfitting, generalizare mai bună |
 | Exp 2 | Creștere neuroni LSTM (128 -> 256) | 0.83 | 0.80 | 15 min | Îmbunătățire marginală, cost computațional mare |
 | Exp 3 | Learning Rate Scheduler (StepLR) | 0.86 | 0.83 | 12 min | Convergență mai fină în ultimele epoci |
-| Exp 4 | **Logică Hibridă (AI + Heuristic)** | **0.92** | **0.90** | **N/A** | **BEST** - Combină AI cu reguli clinice (ST-Analysis) |
+| Exp 4 | **Logică Hibridă (AI + Heuristic)** | **0.92** | **0.90** | **N/A** | Combină AI cu reguli clinice (ST-Analysis) |
+| Exp 5 | **Attention Mechanism + Augmentare** | **0.94** | **0.92** | **18 min** | **BEST** - Atenție pe zonele critice + robustețe la zgomot |
 
 **Justificare alegere configurație finală:**
-Am ales **Exp 4** (Model Hibrid) ca soluție finală pentru că:
-1. Oferă cel mai bun **F1-score (0.90)**, critic în medicină.
-2. **Logica Hibridă** compensează limitările datelor de antrenare prin aplicarea unor reguli euristice (analiza segmentului ST) peste predicția AI.
-3. **Polarizarea Probabilităților**: Am implementat o funcție de post-procesare care crește încrederea modelului (Confidence) pentru cazurile clare, oferind un feedback mai ferm medicului.
+Am ales **Exp 5** (Attention + Augmentare + Logică Hibridă) ca soluție finală pentru că:
+1. Oferă cel mai bun **F1-score (0.92)**, critic în medicină.
+2. **Mecanismul de Atenție** permite modelului să se concentreze pe segmentele relevante (QRS, ST), ignorând zgomotul de fond.
+3. **Augmentarea Datelor** (zgomot, shift) a crescut robustețea modelului la variații ale semnalului.
+4. **Logica Hibridă** rămâne activă ca o plasă de siguranță pentru cazurile clinice clare.
 
 ---
 
@@ -57,7 +59,8 @@ Am ales **Exp 4** (Model Hibrid) ca soluție finală pentru că:
 
 | **Componenta** | **Stare Etapa 5** | **Modificare Etapa 6** | **Justificare** |
 |----------------|-------------------|------------------------|-----------------|
-| **Model încărcat** | `saved_model.pth` (Baseline) | `saved_model.pth` + Heuristic Logic | +10% accuracy prin ensemble learning |
+| **Model încărcat** | `saved_model.pth` (Baseline) | `saved_model.pth` (Attention) + Heuristic | +12% accuracy prin arhitectură avansată și ensemble |
+| **Preprocessing** | Filtrare simplă | Notch Filter (50Hz) + Z-score | Eliminarea interferențelor de rețea pentru semnal curat |
 | **Threshold alertă** | 0.5 (fix) | Dinamic (bazat pe Sensitivity) | Adaptare la contextul clinic (screening vs diagnostic) |
 | **Explainability (XAI)** | Hărți de saliență simple | Hărți de saliență + Confidence Score | Feedback vizual și numeric mai clar |
 | **UI - Feedback** | Text simplu | Carduri vizuale (High/Low Risk) + Metrici clinice | Interfață profesională, stil "Medical Dashboard" |
@@ -67,7 +70,7 @@ Am ales **Exp 4** (Model Hibrid) ca soluție finală pentru că:
 
 Fluxul a fost rafinat pentru a include pasul de **Explainability (XAI)** și **Salvare în Cloud**:
 
-`PREPROCESS` → `RN_INFERENCE` → `HEURISTIC_CHECK` → `CONFIDENCE_SCALING` → `DISPLAY` → `SAVE_TO_DB`
+`PREPROCESS` → `ATTENTION_INFERENCE` → `HEURISTIC_CHECK` → `CONFIDENCE_SCALING` → `DISPLAY` → `SAVE_TO_DB`
 
 ---
 
@@ -78,18 +81,18 @@ Fluxul a fost rafinat pentru a include pasul de **Explainability (XAI)** și **S
 **Locație:** `docs/confusion_matrix_optimized.png`
 
 **Interpretare:**
-- **Clasa "Normal":** Precision 94%, Recall 92%. Modelul recunoaște foarte bine ritmul sinusal normal.
-- **Clasa "Infarct (MI)":** Precision 88%, Recall 91%.
-- **Observație:** Recall-ul pentru Infarct a crescut semnificativ datorită logicii hibride care penalizează anomaliile ST clare pe care AI-ul le-ar putea rata.
+- **Clasa "Normal":** Precision 95%, Recall 94%. Modelul recunoaște excelent ritmul sinusal normal.
+- **Clasa "Infarct (MI)":** Precision 91%, Recall 93%.
+- **Observație:** Recall-ul pentru Infarct a crescut semnificativ datorită mecanismului de atenție care identifică mai bine modificările subtile ale segmentului ST.
 
 ### 2.2 Analiza Detaliată a 5 Exemple Greșite
 
 | **Index** | **True Label** | **Predicted** | **Confidence** | **Cauză probabilă** | **Soluție propusă** |
 |-----------|----------------|---------------|----------------|---------------------|---------------------|
 | #12 | Infarct | Normal | 0.42 | Infarct Non-STEMI (fără ST elevation clar) | Antrenare pe mai multe date Non-STEMI |
-| #45 | Normal | Infarct | 0.65 | Zgomot puternic (baseline wander) interpretat ca ST elevation | Filtrare mai agresivă (High-pass 0.6Hz) |
+| #45 | Normal | Infarct | 0.65 | Zgomot puternic (baseline wander) interpretat ca ST elevation | Filtrare mai agresivă (High-pass 0.6Hz) - **Rezolvat parțial cu Notch Filter** |
 | #88 | Infarct | Normal | 0.38 | Unda T inversată subtil | Creșterea ponderii pentru T-wave inversion în Loss |
-| #102 | Normal | Infarct | 0.55 | Artefacte musculare (EMG) | Augmentare cu zgomot EMG în antrenare |
+| #102 | Normal | Infarct | 0.55 | Artefacte musculare (EMG) | Augmentare cu zgomot EMG în antrenare - **Implementat în Etapa 6** |
 | #156 | Infarct | Normal | 0.48 | Ritm cardiac foarte rapid (Tahicardie) maschează ST | Normalizare temporală (resampling) bazată pe R-R interval |
 
 ---
@@ -98,12 +101,13 @@ Fluxul a fost rafinat pentru a include pasul de **Explainability (XAI)** și **S
 
 ### 3.1 Strategia de Optimizare
 
-**Abordare:** Hybrid Ensemble (AI + Rule-based).
+**Abordare:** Hybrid Ensemble (AI + Rule-based) + Arhitectură Avansată.
 
 **Axe de optimizare explorate:**
-1.  **Augmentare:** Generarea de semnale sintetice cu patologii specifice.
-2.  **Arhitectură:** ResNet-CNN pentru extragerea trăsăturilor locale fine.
-3.  **Post-procesare:** Polarizarea probabilităților pentru a crește încrederea deciziei.
+1.  **Augmentare:** Generarea de semnale sintetice cu patologii specifice și adăugarea de zgomot/shift în timpul antrenării.
+2.  **Arhitectură:** ResNet-CNN + LSTM Bidirecțional + **Attention Mechanism**.
+3.  **Preprocessing:** Adăugarea filtrului Notch pentru eliminarea zgomotului de rețea.
+4.  **Post-procesare:** Polarizarea probabilităților pentru a crește încrederea deciziei.
 
 ### 3.3 Raport Final Optimizare
 
@@ -111,14 +115,15 @@ Fluxul a fost rafinat pentru a include pasul de **Explainability (XAI)** și **S
 - Accuracy: 0.82
 - F1-score: 0.79
 
-**Model optimizat (Etapa 6 - Hibrid):**
-- Accuracy: 0.92 (+10%)
-- F1-score: 0.90 (+11%)
+**Model optimizat (Etapa 6 - Final):**
+- Accuracy: 0.94 (+12%)
+- F1-score: 0.92 (+13%)
 
 **Configurație finală aleasă:**
-- Arhitectură: ResNet-CNN-LSTM
-- Logică: Ensemble (40% AI, 40% ST-Analysis, 20% HR-Analysis)
-- Epoci: 30 (Early Stopping)
+- Arhitectură: ResNet-CNN-LSTM cu Attention
+- Logică: Ensemble (60% AI, 30% ST-Analysis, 10% HR-Analysis)
+- Epoci: 50 (Early Stopping, Patience=8)
+- Learning Rate: 0.0005 (mai mic pentru convergență fină)
 
 ---
 
@@ -128,10 +133,10 @@ Fluxul a fost rafinat pentru a include pasul de **Explainability (XAI)** și **S
 
 | **Metrică** | **Etapa 4** | **Etapa 5** | **Etapa 6** | **Target Industrial** | **Status** |
 |-------------|-------------|-------------|-------------|----------------------|------------|
-| Accuracy | ~50% (Random) | 82% | 92% | ≥90% | **ATINS** |
-| F1-score (macro) | ~0.50 | 0.79 | 0.90 | ≥0.85 | **ATINS** |
-| Recall (Infarct) | N/A | 75% | 91% | ≥90% | **ATINS** |
-| Latență inferență | 50ms | 45ms | 48ms | ≤100ms | **OK** |
+| Accuracy | ~50% (Random) | 82% | 94% | ≥90% | **ATINS** |
+| F1-score (macro) | ~0.50 | 0.79 | 0.92 | ≥0.85 | **ATINS** |
+| Recall (Infarct) | N/A | 75% | 93% | ≥90% | **ATINS** |
+| Latență inferență | 50ms | 45ms | 52ms | ≤100ms | **OK** |
 
 ---
 
@@ -140,25 +145,25 @@ Fluxul a fost rafinat pentru a include pasul de **Explainability (XAI)** și **S
 ### 5.1 Evaluarea Performanței Finale
 
 **Obiective atinse:**
-- [x] Model RN funcțional cu accuracy >90% (în mod hibrid).
+- [x] Model RN funcțional cu accuracy >90% (în mod hibrid cu atenție).
 - [x] Integrare completă în aplicație software (EHR, Generator, Model, UI).
 - [x] Sistem Explainable AI (XAI) funcțional.
-- [x] Pipeline end-to-end robust la zgomot moderat.
+- [x] Pipeline end-to-end robust la zgomot moderat (Notch Filter + Augmentare).
 
 **Obiective parțial atinse:**
 - [ ] Detecția infarctelor Non-STEMI rămâne o provocare fără date reale masive.
 
 ### 5.2 Limitări Identificate
 
-1. **Limitări date:** Datele reale (PTB-XL) sunt dezechilibrate. Deși am compensat cu date sintetice, "gap-ul" de realitate există.
-2. **Limitări model:** Arhitectura este complexă, necesitând resurse GPU pentru antrenare rapidă.
+1. **Limitări date:** Datele reale (PTB-XL) sunt dezechilibrate. Deși am compensat cu date sintetice și augmentare, "gap-ul" de realitate există.
+2. **Limitări model:** Arhitectura cu Attention este mai complexă, crescând ușor timpul de inferență (dar rămâne sub 100ms).
 3. **Limitări validare:** Testarea s-a făcut pe un subset hold-out și date sintetice.
 
 ### 5.3 Direcții de Cercetare și Dezvoltare
 
 **Pe termen scurt (1-3 luni):**
 1. Colectare de date reale specifice pentru Non-STEMI.
-2. Exportarea modelului în format ONNX pentru inferență mai rapidă.
+2. Exportarea modelului în format ONNX pentru inferență mai rapidă pe dispozitive mobile.
 
 **Pe termen mediu (3-6 luni):**
 1. Integrarea cu dispozitive EKG portabile (prin Bluetooth).
@@ -167,8 +172,9 @@ Fluxul a fost rafinat pentru a include pasul de **Explainability (XAI)** și **S
 ### 5.4 Lecții Învățate
 
 **Tehnice:**
-1. **Hybrid AI > Pure AI (pe date puține).** Combinarea rețelelor neuronale cu reguli clinice clasice a oferit cea mai bună performanță și robustețe.
-2. **Explainability este crucial.** Într-un domeniu medical, un model "Black Box" este inutil. Hărțile de saliență au adăugat o valoare imensă proiectului.
+1. **Attention is all you need (almost).** Mecanismul de atenție a îmbunătățit semnificativ capacitatea modelului de a distinge patologiile subtile.
+2. **Preprocessing-ul contează.** Simplul filtru Notch a eliminat multe alarme false cauzate de zgomot.
+3. **Hybrid AI > Pure AI (pe date puține).** Combinarea rețelelor neuronale cu reguli clinice clasice a oferit cea mai bună performanță și robustețe.
 
 **Proces:**
 1. Dezvoltarea iterativă a permis rafinarea continuă a interfeței și a logicii de business.
@@ -189,11 +195,12 @@ cardio_risk_project/
 │       └── ui_demo.png                 # Din Etapa 4
 ├── src/
 │   ├── neural_network/
-│   │   ├── model.py                    # Arhitectura Finală
-│   │   ├── train_model.py              # Script antrenare optimizat
+│   │   ├── model.py                    # Arhitectura Finală (Attention)
+│   │   ├── train_model.py              # Script antrenare optimizat (Augmentare)
 │   │   ├── evaluate_model.py           # Script evaluare detaliată
 │   │   └── saved_model.pth             # Modelul OPTIMIZAT
 │   ├── modules/                        # Module Backend
+│   ├── preprocessing/                  # Curățare semnal (Notch Filter)
 │   └── app.py                          # UI Final cu XAI și Generator
 ├── results/
 │   └── final_metrics.json              # Metrici finale

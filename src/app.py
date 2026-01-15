@@ -314,10 +314,12 @@ def patient_profile_view(cnp):
             if mode == "Simulator":
                 heart_rate = st.slider("Heart Rate", 40, 140, 70)
                 noise_level = st.slider("Noise", 0.0, 0.2, 0.02)
-                st_disp = st.slider("ST Displacement", -0.5, 1.0, 0.0, step=0.1)
+                # st_disp = st.slider("ST Displacement", -0.5, 1.0, 0.0, step=0.1)
+                st_disp = 0.0
                 t_amp = st.slider("T-Wave Amp", -0.5, 0.8, 0.25, step=0.05)
-                sensitivity = st.slider("AI Sensitivity", 1.0, 5.0, 2.5, step=0.1)
-                
+                # sensitivity = st.slider("AI Sensitivity", 1.0, 5.0, 2.5, step=0.1)
+                sensitivity = 1.0
+
                 if st.button("Generate Signal", type="primary", use_container_width=True):
                     signal, time_axis = generate_advanced_ecg(heart_rate, noise_level, st_disp, t_amp)
                     st.session_state['current_signal'] = signal
