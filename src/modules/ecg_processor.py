@@ -14,20 +14,28 @@ if project_root not in sys.path:
 from src.neural_network.model import CNNLSTM
 from src.preprocessing.signal_cleaner import SignalCleaner
 
+# Use relative path for deployment compatibility
 MODEL_PATH = os.path.join(project_root, 'src', 'neural_network', 'saved_model.pth')
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 @st.cache_resource
 def load_model():
+    # Debugging: Print path and existence
+    print(f"Looking for model at: {MODEL_PATH}")
     if not os.path.exists(MODEL_PATH):
+        print("Model file NOT found!")
         return None
+    
+    print("Model file found. Loading...")
     model = CNNLSTM(input_channels=12, num_classes=1)
     try:
         model.load_state_dict(torch.load(MODEL_PATH, map_location=DEVICE))
         model.to(DEVICE)
         model.eval()
+        print("Model loaded successfully.")
         return model
-    except:
+    except Exception as e:
+        print(f"Error loading model: {e}")
         return None
 
 def generate_advanced_ecg(duration=10, fs=500, heart_rate=60, noise_level=0.05, 
